@@ -1,0 +1,60 @@
+---
+title: "Tarefa4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+* selecionar variáveis numéricas e fazer summary e boxplot
+* selecionar variáveis categóricas e fazer tabelas marginais `table`
+
+
+
+Criando tabelas marginais...
+
+Esta relacionando as variáveis "partido" e "voto_impeach" da base de dados
+"partido" representa o partido que está filiado o político, e
+"voto_impeach" representa o voto deste mesmo político para o impeachment da ex-presidente
+
+```{r}
+consolidacao <- select(votos,"partido","voto_impeach")
+
+tabelaContingencia <- table(consolidacao)
+print(head(tabelaContingencia))
+
+print('-------------------------------')
+margin.table(tabelaContingencia,2)
+
+print('----------------------------------')
+head(margin.table(tabelaContingencia,1))
+
+print('----------------------------------------------------------')
+margin.table(tabelaContingencia)
+
+```
+
+
+E esta usando as variáveis "colig_elei" e "voto_impeach"
+"colig_elei" representa quais os partidos que o polítco que votou tem coligações.
+
+```{r}
+consolidacao <- select(votos,"colig_elei","voto_impeach")
+
+tabelaContingencia <- table(consolidacao)
+print(head(tabelaContingencia))
+levels(tabelaContingencia)
+
+print('-------------------------------')
+margin.table(tabelaContingencia,2)
+
+print('----------------------------------')
+head(margin.table(tabelaContingencia,1))
+
+print('----------------------------------------------------------')
+margin.table(tabelaContingencia)
+
+```

@@ -1,0 +1,33 @@
+---
+title: "Tarefa2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Importar o dataset para o Rstudio, escolher as colunas mais relevantes e modificar seu tipo se necessário.
+O Dataset analizado contém uma lista dos votos dos políticos para decidiu o impeachment da Dilma Rousseff
+além de informações sobre eles.
+As colunas da tabela que foram mantidas, foi pensado que teria mais importância para podermos relacionar 
+o voto com o partido a que pertence a pessoa e algumas que poderiam ter algo de interessante ou alguma curiosidade, como o número do mandato ou os gastos com a campanha.
+
+```{r}
+votos<- tbl_df(read.spss("../dados/vd_vot_impeachment/bd_vot_impeachment.sav"))
+names(votos)
+table_votos <- select(votos,"nome_civil","partido","voto_impeach","sexo","uf","colig_elei","n_mandat","gastos_camp")
+table_votos
+names(table_votos)
+table_votos$partido <- str_trim(table_votos$partido)
+table_votos$colig_elei <- str_trim(table_votos$colig_elei)
+table_votos$partido[table_votos$partido == "PT do B"] <- "PTdoB"
+table_votos$partido[table_votos$partido == "PC do B"] <- "PCdoB"
+table_votos$partido <- as.factor(table_votos$partido)
+table_votos$uf <- as.factor(table_votos$uf)
+table_votos$colig_elei <- as.factor(table_votos$colig_elei)
+table_votos$n_mandat <- as.ordered (table_votos$n_mandat)
+votos <- table_votos
+levels(table_votos$partido)
+glimpse(table_votos)
+```

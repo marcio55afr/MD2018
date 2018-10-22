@@ -1,0 +1,106 @@
+---
+title: "Tarefa6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Iremos utilizar agora a SVM para predizer qual o voto do político para o impeachment de acordo com o partido  e também de acordo com suas coligações.
+
+
+
+Agora fazer com a svm somente com o partido para prever o voto.
+```{r}
+require(e1071)
+
+aprVoto <- select(votos,"partido","colig_elei","voto_impeach")
+
+aprVoto <- mutate(aprVoto, valid=F)
+i<-1
+while(i<501){
+  if(i%%10==0){
+    aprVoto[i,'valid']=TRUE
+  }
+  i=i+1
+}
+validacao <- filter(aprVoto,valid==TRUE )
+treino <- filter(aprVoto,valid==F )
+
+classificador <- svm(voto_impeach ~ partido, treino, type="C")
+
+validacao$voto_impeach_predict <- predict(classificador, newdata=select(validacao,-voto_impeach))
+
+treino$predict <- predict(classificador, newdata=select(treino,-voto_impeach))
+
+validacao
+
+```
+
+
+SVM a partir das coligacoes
+É necessário separar os nomes dos partidos das coligações que estão em uma string para cada político.
+Depois criar uma tabela para que seja a entrada da SVM para aprendizado e contér os votos deles.
+
+```{r}
+
+partidosColig <- distinct(select(aprVoto, "colig_elei"))
+partidosColig$colig_elei <- as.character(partidosColig$colig_elei)
+partidosColig$colig_elei <- str_remove_all(partidosColig$colig_elei," ")
+listColig <- str_trim(partidosColig$colig_elei) %>% str_split("/")
+
+dicPartido <- list()
+i<-1
+for(linha in listColig){
+  print(linha)
+  if(length(linha)>1){
+    for(partido in linha){
+      print(i)
+      print(partido)
+      dicPartido[i]<-partido
+      i <- i+1
+    }
+  }
+}
+
+dicPartido <- unique(dicPartido)
+nomesColig <- as.vector(dicPartido)
+
+listColigs <- str_split(str_remove_all(aprVoto$colig_elei," "),'/')
+
+colig= matrix(data=F, nrow=513, ncol=30, dimnames = list(c(1:513),nomesColig))
+
+i <- 1
+for(list in listColigs){
+  for(col in list)
+  {
+    colig[i,col]<-TRUE
+  }
+  i= i + 1
+}
+i <- 1
+
+vetorCompleto <- c(nomesColig,"partido","voto_impeach","valid")
+matrixCompleta <- matrix(data=colig, nrow=513, ncol=33, dimnames = list(c(1:513),vetorCompleto))
+
+dataCompleted <- as_tibble(matrixCompleta)
+
+dataCompleted$partido <- aprVoto$partido
+dataCompleted$voto_impeach <- aprVoto$voto_impeach
+dataCompleted$valid <- aprVoto$valid
+
+validacao <- filter(dataCompleted,valid==TRUE )
+treino <- filter(dataCompleted,valid==F )
+
+classificador <- svm(x=treino[,1:30],y=treino[,32], type="C")
+
+validacao$voto_impeach_predict <- predict(classificador, newdata=select(validacao,-voto_impeach,-partido,-valid))
+
+treino$predict <- predict(classificador, newdata=select(treino,-voto_impeach,-partido,-valid))
+
+validacao
+
+```

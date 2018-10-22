@@ -1,0 +1,35 @@
+---
+title: "Tarefa5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+É importante plotar as informações em gráficos
+```{r}
+attach(votos)
+
+summary(votos)
+summary(votos$gastos_camp)
+summary(votos$n_mandat)
+
+boxplot(votos$gastos_camp,horizontal = T)
+boxplot(n_mandat,horizontal = T)
+
+```
+
+Nas tabelas abaixo pode ver a relação entre o número de votos sim e não para o impeachment
+da ex-presidente e também a proporção de votos em cada partido.
+
+```{r}
+ggplot(data=votos)+geom_bar(mapping=aes(x=voto_impeach))
+ggplot(data=votos)+geom_bar(mapping=aes(x=partido,fill=voto_impeach),position = position_stack(reverse = F)) + coord_flip() +
+theme(legend.position = "top")+
+scale_fill_manual(values=c('#0025e2','#e20000','gray','#232323'))
+
+```

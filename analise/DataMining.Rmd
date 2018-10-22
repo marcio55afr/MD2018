@@ -13,6 +13,9 @@ require(pacman)
 p_load(dplyr)
 p_load(foreign)
 p_load(ggplot2)
+p_load(stringr)
+p_load(e1071)
+p_load(freestats)
 ```
 Usar o Makefile para baixar o dataset da internet.
 
@@ -28,10 +31,16 @@ names(votos)
 table_votos <- select(votos,"nome_civil","partido","voto_impeach","sexo","uf","colig_elei","n_mandat","gastos_camp")
 table_votos
 names(table_votos)
+table_votos$partido <- str_trim(table_votos$partido)
+table_votos$colig_elei <- str_trim(table_votos$colig_elei)
+table_votos$partido[table_votos$partido == "PT do B"] <- "PTdoB"
+table_votos$partido[table_votos$partido == "PC do B"] <- "PCdoB"
 table_votos$partido <- as.factor(table_votos$partido)
 table_votos$uf <- as.factor(table_votos$uf)
 table_votos$colig_elei <- as.factor(table_votos$colig_elei)
 table_votos$n_mandat <- as.ordered (table_votos$n_mandat)
+votos <- table_votos
+levels(table_votos$partido)
 glimpse(table_votos)
 ```
 
@@ -44,7 +53,6 @@ print(head(table_votos))
 
 É importante plotar as informações em gráficos
 ```{r}
-votos <- table_votos
 attach(votos)
 
 summary(votos)
@@ -59,9 +67,191 @@ boxplot(n_mandat,horizontal = T)
 Tarefa 4
 ```{r}
 ggplot(data=votos)+geom_bar(mapping=aes(x=voto_impeach))
-ggplot(data=votos)+geom_bar(mapping=aes(x=partido))
+ggplot(data=votos)+geom_bar(mapping=aes(x=partido,fill=voto_impeach),position = position_stack(reverse = F)) + coord_flip() +
+theme(legend.position = "top")+
+scale_fill_manual(values=c('#0025e2','#e20000','gray','#232323'))
 
 ```
+
+
+testando a função filter:
+
+```{r}
+
+votos_sim <- select(votos, partido,voto_impeach)
+votos_sim_aux <- filter(votos_sim, voto_impeach == "Sim")
+votos_sim <- distinct(votos_sim_aux)
+votos_sim
+
+```
+
+Criando tabelas marginais
+```{r}
+consolidacao <- select(votos,"partido","voto_impeach")
+
+tabelaContingencia <- table(consolidacao)
+print(head(tabelaContingencia))
+
+print('-------------------------------')
+margin.table(tabelaContingencia,2)
+
+print('----------------------------------')
+head(margin.table(tabelaContingencia,1))
+
+print('----------------------------------------------------------')
+margin.table(tabelaContingencia)
+
+```
+
+Novamente, porém com outras variáveis categóricas
+```{r}
+consolidacao <- select(votos,"colig_elei","voto_impeach")
+
+tabelaContingencia <- table(consolidacao)
+print(head(tabelaContingencia))
+levels(tabelaContingencia)
+
+print('-------------------------------')
+margin.table(tabelaContingencia,2)
+
+print('----------------------------------')
+head(margin.table(tabelaContingencia,1))
+
+print('----------------------------------------------------------')
+margin.table(tabelaContingencia)
+
+```
+
+
+Iremos utilizar agora a SVM para predizer qual o voto do político para o impeachment de acordo com o partido  e também de acordo com suas coligações.
+
+Primeiro fazer uma KNN somente com o partido para prever o voto.
+```{r}
+levels(votos$partido)
+aprVoto <- select(votos,"partido","colig_elei","voto_impeach")
+
+
+
+```
+
+
+Agora fazer com a svm somente com o partido para prever o voto.
+```{r}
+require(e1071)
+levels(votos$partido)
+aprVoto <- select(votos,"partido","colig_elei","voto_impeach")
+
+aprVoto <- mutate(aprVoto, valid=F)
+i<-1
+while(i<501){
+  if(i%%10==0){
+    aprVoto[i,'valid']=TRUE
+  }
+  i=i+1
+}
+validacao <- filter(aprVoto,valid==TRUE )
+treino <- filter(aprVoto,valid==F )
+
+classificador <- svm(voto_impeach ~ partido, treino, type="C")
+
+validacao$voto_impeach_predict <- predict(classificador, newdata=select(validacao,-voto_impeach))
+
+treino$predict <- predict(classificador, newdata=select(treino,-voto_impeach))
+
+validacao
+
+```
+
+
+svm a partir das coligacoes
+
+```{r}
+
+partidosColig <- distinct(select(aprVoto, "colig_elei"))
+partidosColig$colig_elei <- as.character(partidosColig$colig_elei)
+partidosColig$colig_elei <- str_remove_all(partidosColig$colig_elei," ")
+listColig <- str_trim(partidosColig$colig_elei) %>% str_split("/")
+
+dicPartido <- list()
+i<-1
+for(linha in listColig){
+  print(linha)
+  if(length(linha)>1){
+    for(partido in linha){
+      print(i)
+      print(partido)
+      dicPartido[i]<-partido
+      i <- i+1
+    }
+  }
+}
+
+dicPartido <- unique(dicPartido)
+nomesColig <- as.vector(dicPartido)
+
+listColigs <- str_split(str_remove_all(aprVoto$colig_elei," "),'/')
+
+colig= matrix(data=F, nrow=513, ncol=30, dimnames = list(c(1:513),nomesColig))
+
+i <- 1
+for(list in listColigs){
+  for(col in list)
+  {
+    colig[i,col]<-TRUE
+  }
+  i= i + 1
+}
+i <- 1
+
+vetorCompleto <- c(nomesColig,"partido","voto_impeach","valid")
+matrixCompleta <- matrix(data=colig, nrow=513, ncol=33, dimnames = list(c(1:513),vetorCompleto))
+
+dataCompleted <- as_tibble(matrixCompleta)
+
+dataCompleted$partido <- aprVoto$partido
+dataCompleted$voto_impeach <- aprVoto$voto_impeach
+dataCompleted$valid <- aprVoto$valid
+
+validacao <- filter(dataCompleted,valid==TRUE )
+treino <- filter(dataCompleted,valid==F )
+
+classificador <- svm(x=treino[,1:30],y=treino[,32], type="C")
+
+validacao$voto_impeach_predict <- predict(classificador, newdata=select(validacao,-voto_impeach,-partido,-valid))
+
+treino$predict <- predict(classificador, newdata=select(treino,-voto_impeach,-partido,-valid))
+
+validacao
+
+```
+
+
+
+utilizando agora redes neurais
+```{r}
+require(pacman)
+p_load(freestats)
+
+rede <- perceptrain(S = treino[,1:31], y = treino[,32],  alpha_k = .001,  endcost = 0)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

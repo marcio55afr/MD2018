@@ -1,0 +1,25 @@
+---
+title: "Tarefa1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Pacotes necessarios para a execução do código
+```{r, include=FALSE}
+Sys.setenv(https_proxy="proxy.ufu.br:3128")
+require(pacman)
+p_load(dplyr)
+p_load(foreign)
+p_load(ggplot2)
+p_load(stringr)
+p_load(e1071)
+p_load(freestats)
+```
+Usar o Makefile para baixar o dataset da internet.
+
+```{bash, include=F}
+cd ../dados
+make
+```
