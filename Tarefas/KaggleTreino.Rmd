@@ -1,0 +1,67 @@
+---
+title: "KaggleTreino"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(https_proxy="proxy.ufu.br:3128")
+require(pacman)
+p_load(dplyr)
+p_load(ggplot2)
+p_load(caret)
+```
+
+
+```{r}
+
+treino <- read.csv("../dados/houses_price/train.csv")
+validacao <- read.csv("../dados/houses_price/test.csv")
+
+treino$SalePrice <- log(treino$SalePrice)
+
+
+treino <- select(treino, c("SalePrice","GarageArea","Fireplaces","TotRmsAbvGrd","GrLivArea","HeatingQC", "TotalBsmtSF", "YearBuilt"))
+validacao <- select(validacao, c("GarageArea","Fireplaces","TotRmsAbvGrd","GrLivArea", "HeatingQC", "TotalBsmtSF", "YearBuilt"))
+
+#setting up cross-validation
+cvcontrol <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+
+#Using treebag 
+train.bagg <- train(SalePrice ~ ., 
+                   data=treino,
+                   method="treebag",
+                   trControl=cvcontrol,
+                   importance=TRUE)
+train.bagg
+
+
+
+#obtaining class predictions
+bagg.classTrain <-  predict(train.bagg, 
+                          type="raw")
+head(bagg.classTrain)
+
+plot(bagg.classTrain, treino$SalePrice, main = "Predicted vs. Actual SalePrice") 
+abline(0,1)
+
+#obtaining class predictions
+bagg.classTest <-  predict(train.bagg, 
+                         newdata = validacao,
+                          type="raw")
+head(bagg.classTest)
+
+plot(varImp(train.bagg))
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```

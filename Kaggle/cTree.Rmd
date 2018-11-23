@@ -1,0 +1,21 @@
+---
+title: "cTree"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+model_control <- trainControl(method="repeatedcv", number = 2,
+                          allowParallel=TRUE)
+
+train.tree <- train(type ~ ., 
+                   data=monster,
+                   method="ctree",
+                   trControl=model_control,
+                   tuneLength = 0)
+train.tree
+plot(train.tree)
+```

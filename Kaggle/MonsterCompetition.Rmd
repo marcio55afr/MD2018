@@ -1,0 +1,116 @@
+---
+title: "MonsterCompetition"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+#Sys.setenv(https_proxy="proxy.ufu.br:3128")
+require(pacman)
+p_load(dplyr)
+p_load(ggplot2)
+p_load(caret)
+p_load(psych)
+```
+
+Agora será realiza a leitura dos dados e observado alguma de suas características.
+```{r}
+monster <- tbl_df(read.csv("train.csv"))
+monster <- select(monster, -"color",-"id")
+test <- tbl_df(read.csv("test.csv"))
+envio <- select(test,"id")
+test <- select(test, -"color",-"id")
+```
+
+
+3-Random Forest
+```{r}
+
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.rf <- train(type ~ ., 
+                  data=monster,
+                  method="rf",
+                  trControl=model_control,
+                  #tuneLength = 3,
+                  importance=TRUE)
+train.rf
+
+plot(varImp(train.rf))
+
+rf.predict <-  predict(train.rf,
+                           type="raw")
+
+confusionMatrix(monster$type,rf.predict)
+
+
+envio$type <-  predict(train.rf,
+                           newdata = test,
+                          type="raw")
+
+write.csv(envio, file = "sample_submission_rf.csv", row.names=F )
+```
+
+Random Forest com Boosting  
+```{r}
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.gbm <- train(type ~ ., 
+                   data=monster,
+                   method="gbm",
+                   verbose=F,
+                   trControl=model_control)
+train.gbm
+
+
+gbm.predict<-  predict(train.gbm,
+                           type="raw")
+
+confusionMatrix(monster$type,gbm.predict)
+
+envio$type <-  predict(train.gbm,
+                           newdata = test,
+                          type="raw")
+
+write.csv(envio, file = "sample_submission_rfb.csv", row.names=F )
+
+```
+
+
+
+
+-AdaBoost
+```{r}
+
+model_control <- trainControl(method="repeatedcv", number = 2,
+                          allowParallel=TRUE)
+
+train.ada <- train(type ~ ., 
+                  data=monster,
+                 method="AdaBoost.M1",
+                  trControl=model_control,
+                  tuneLength = 3,
+                  importance=TRUE)
+
+train.ada
+
+ada.predict<-  predict(train.gbm,
+                           type="raw")
+confusionMatrix(monster$type,ada.predict)
+
+
+envio$type <-  predict(train.ada,
+                           newdata = test,
+                          type="raw")
+
+write.csv(envio, file = "sample_submission_ada.csv", row.names=F )
+
+
+```

@@ -1,0 +1,96 @@
+---
+title: "Classificação"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Classificação utilizando o package CARET
+e o método de busca em arvore aplicado na mesma base dos votos
+
+
+
+
+
+```{r}
+require(pacman)
+p_load(caret)
+
+validacao <- select(dataCompleted,-"valid")
+treino <- select(dataCompleted,-"valid")
+
+
+#Setting the random seed for replication
+set.seed(2525)
+
+#setting up cross-validation
+cvcontrol <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.tree <- train(voto_impeach ~ ., 
+                   data=treino,
+                   method="ctree",
+                   trControl=cvcontrol,
+                   tuneLength = 10)
+train.tree
+plot(train.tree)
+
+
+#obtaining class predictions
+tree.classTrain <-  predict(train.tree, 
+                          type="raw")
+head(tree.classTrain)
+
+
+#computing confusion matrix
+confusionMatrix(treino$voto_impeach,tree.classTrain)
+
+
+#obtaining class predictions
+tree.classTest <-  predict(train.tree, 
+                         newdata = validacao,
+                          type="raw")
+head(tree.classTest)
+
+#computing confusion matrix
+confusionMatrix(validacao$voto_impeach,tree.classTest)
+
+```
+
+
+
+```{r}
+#Using treebag 
+train.bagg <- train(voto_impeach ~ ., 
+                   data=treino,
+                   method="treebag",
+                   trControl=cvcontrol,
+                   importance=TRUE)
+
+train.bagg
+
+plot(varImp(train.bagg))
+
+
+#obtaining class predictions
+bagg.classTrain <-  predict(train.bagg, 
+                          type="raw")
+head(bagg.classTrain)
+
+
+#computing confusion matrix
+confusionMatrix(treino$voto_impeach,bagg.classTrain)
+
+
+#obtaining class predictions
+bagg.classTest <-  predict(train.bagg, 
+                         newdata = validacao,
+                          type="raw")
+head(bagg.classTest)
+
+
+#computing confusion matrix
+confusionMatrix(validacao$voto_impeach,bagg.classTest)
+
+```

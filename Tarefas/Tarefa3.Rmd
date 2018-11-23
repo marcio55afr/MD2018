@@ -20,7 +20,17 @@ testando a função filter:
 
 ```{r}
 
+
 votos_sim <- select(votos, partido,voto_impeach)
+
+
+votos_partidos <- distinct(votos_sim)
+votos_partidos
+
+votos_pmbd <- filter(votos, voto_impeach == "Não", partido=="PMDB")
+votos_pmbd
+
+
 votos_sim_aux <- filter(votos_sim, voto_impeach == "Sim")
 votos_sim <- distinct(votos_sim_aux)
 votos_sim

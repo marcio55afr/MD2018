@@ -1,0 +1,288 @@
+---
+title: "analiseGGG"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Este documento apresenta uma análise aprofundada do Dataset 'Ghouls, Goblins, and Ghosts... Boo!' do Kaggle,
+e também classificações para prever o "monstro" de acordo com algumas características.
+
+
+Nesta primeira parte será importada todos os pacotes necessários para a relização do trabalho
+```{r}
+Sys.setenv(https_proxy="proxy.ufu.br:3128")
+require(pacman)
+p_load(dplyr)
+p_load(ggplot2)
+p_load(caret)
+p_load(psych)
+```
+
+Agora será realiza a leitura dos dados e observado alguma de suas características.
+```{r}
+monster <- tbl_df(read.csv("train.csv"))
+teste <- monster[331:371,]
+valid <- teste$type
+teste <- select(teste,-"type")
+monster <- monster[1:330,]
+test <- tbl_df(read.csv("test.csv"))
+
+summary(monster)
+print("--------------------------------------------------------------------------------------------")
+describe(monster)
+print("--------------------------------------------------------------------------------------------")
+glimpse(monster)
+
+ggplot(monster, aes(x=bone_length, y=id , colour=type)) + 
+  scale_color_discrete(h=c(30,100), c = 360 ,l=60) +
+  geom_point(size=1.8) +
+  xlab('Bone Length') + ylab('Age 7 Full Scale IQ')
+
+ggplot(monster, aes(x=bone_length, fill=type)) + 
+  scale_fill_hue(h=c(0,120), c=280,l=50) +
+  geom_density(alpha=.3)
+
+ggplot(monster, aes(x=rotting_flesh, y=id)) + 
+  scale_color_discrete(h=c(30,100), c = 360 ,l=60) +
+  geom_point(aes(color= type), size=1.8) +
+  xlab('Rotting Flesh') + ylab('Age 7 Full Scale IQ')
+
+ggplot(monster, aes(x=rotting_flesh, fill=type)) + 
+  scale_fill_hue(h=c(0,120), c=280,l=50) +
+  geom_density(alpha=.3)
+
+ggplot(monster, aes(x=hair_length, y=id)) + 
+  scale_color_discrete(h=c(30,100), c = 360 ,l=60) +
+  geom_point(aes(colour= type), size=1.8) +
+  xlab('Hair Length') + ylab('Age 7 Full Scale IQ')
+
+ggplot(monster, aes(x=hair_length, fill=type)) + 
+  scale_fill_hue(h=c(0,120), c=280,l=50) +
+  geom_density(alpha=.3)
+
+ggplot(monster, aes(x=has_soul, y=id)) + 
+  scale_color_discrete(h=c(30,100), c = 360 ,l=60) +
+  geom_point(aes(colour= type), size=1.8) +
+  xlab('Has Soul') + ylab('Age 7 Full Scale IQ')
+
+ggplot(monster, aes(x=has_soul, fill=type)) + 
+  scale_fill_hue(h=c(0,120), c=280,l=50) +
+  geom_density(alpha=.3)
+
+ggplot(monster, aes(x=color,fill=type)) + 
+  geom_bar() +
+  scale_fill_hue(h=c(30,100),c=250,l=40)+
+  xlab('Color') + ylab('Age 7 Full Scale IQ')
+
+ggplot(monster, aes(x=type,fill=color)) + 
+  geom_bar() +
+  scale_fill_hue(h=c(10,340),c=100,l=30)+
+  xlab('Color') + ylab('Age 7 Full Scale IQ')
+
+
+
+monster <- select(monster, -"id")
+teste <- select(teste, -"id")
+
+```
+
+É possivel perceber que o a cor do monstro sozinha não influência no tipo de monstro que ele é.
+Portanto iremos fazer a correlação da cor com outros atributos para verificar a importância da mesma
+```{r}
+
+
+
+```
+
+
+
+
+
+
+Já podemos fazer o treino de um classificador com estes dados.
+
+
+
+
+
+1-Tree
+```{r}
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.tree <- train(type ~ ., 
+                   data=monster,
+                   method="ctree",
+                   trControl=model_control,
+                   tuneLength = 10)
+train.tree
+plot(train.tree)
+
+tree.predict <-  predict(train.tree,
+                          type="raw")
+confusionMatrix(monster$type, tree.predict)
+
+
+tree.predict <-  predict(train.tree,
+                           newdata = teste,
+                          type="raw")
+confusionMatrix(valid,tree.predict)
+
+```
+
+
+2-Tree bagging
+```{r}
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.bagg <- train(type ~ ., 
+                   data=monster,
+                   method="treebag",
+                   trControl=model_control,
+                   tuneLength = 10)
+train.bagg
+
+
+tree.predict <-  predict(train.bagg,
+                          type="raw")
+
+confusionMatrix(monster$type, tree.predict)
+
+tree.predict <-  predict(train.bagg,
+                           newdata = teste,
+                          type="raw")
+
+confusionMatrix(valid,tree.predict)
+
+plot(varImp(train.bagg))
+
+
+
+```
+
+
+
+
+3-Random Forest
+```{r}
+
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.rf <- train(type ~ ., 
+                  data=monster,
+                  method="rf",
+                  trControl=model_control,
+                  #tuneLength = 3,
+                  importance=TRUE)
+train.rf
+
+plot(varImp(train.rf))
+
+rf.predict <-  predict(train.rf,
+                           type="raw")
+
+confusionMatrix(monster$type,rf.predict)
+
+rf.predict <-  predict(train.rf,
+                           newdata = teste,
+                          type="raw")
+
+confusionMatrix(valid,rf.predict)
+
+```
+
+
+
+Random Forest com Boosting  
+```{r}
+model_control <- trainControl(method="repeatedcv", number = 10,
+                          allowParallel=TRUE)
+
+train.gbm <- train(type ~ ., 
+                   data=monster,
+                   method="gbm",
+                   verbose=F,
+                   trControl=model_control)
+train.gbm
+
+
+gbm.predict<-  predict(train.gbm,
+                           type="raw")
+
+confusionMatrix(monster$type,gbm.predict)
+
+gbm.predict <-  predict(train.gbm,
+                           newdata = teste,
+                          type="raw")
+
+confusionMatrix(valid,gbm.predict)
+
+
+test$type <-  predict(train.gbm,
+                           newdata = test,
+                          type="raw")
+envio <- select(test,"id","type") 
+write.csv(envio, file = "sample_submission_rf.csv", row.names=F )
+
+```
+
+
+
+
+-AdaBoost
+```{r}
+
+model_control <- trainControl(method="repeatedcv", number = 2,
+                          allowParallel=TRUE)
+
+train.ada <- train(type ~ ., 
+                  data=monster,
+                 method="AdaBoost.M1",
+                  trControl=model_control,
+                  #tuneLength = 3,
+                  importance=TRUE)
+
+train.ada
+
+ada.predict<-  predict(train.gbm,
+                           type="raw")
+confusionMatrix(monster$type,ada.predict)
+
+ada.predict <-  predict(train.gbm,
+                           newdata = teste,
+                          type="raw")
+confusionMatrix(valid,ada.predict)
+
+
+test$type <-  predict(train.ada,
+                           newdata = test,
+                          type="raw")
+envio <- select(test,"id","type") 
+write.csv(envio, file = "sample_submission_ada.csv", row.names=F )
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

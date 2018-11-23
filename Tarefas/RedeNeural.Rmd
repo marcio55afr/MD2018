@@ -1,0 +1,17 @@
+---
+title: "Tarefa8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#require(pacman)
+#p_load(freestats)
+
+#rede <- perceptrain(S = treino[,1:31], y = treino[,32],  alpha_k = .001,  endcost = 0)
+
+
+```

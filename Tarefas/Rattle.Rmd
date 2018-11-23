@@ -1,0 +1,16 @@
+---
+title: "Rattle"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+Sys.setenv(https_proxy="proxy.ufu.br:3128")
+require(pacman)
+p_load(rattle)
+p_load(dplyr)
+
+```
